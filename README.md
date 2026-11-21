@@ -1,4 +1,4 @@
-# Agentic AI Newsletter Automation (Docker-first)
+# Agentic AI Newsletter Automation
 
 Collects articles from allowlisted RSS feeds, lets subscribers pick topics, runs a multi-step **agent pipeline**
 (curate → summarise with citations → verify claims → assess risk → decide auto-send / human review / skip), and a

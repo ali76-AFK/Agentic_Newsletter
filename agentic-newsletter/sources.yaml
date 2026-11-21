@@ -1,0 +1,13 @@
+# Allowlisted feeds. HTTPS only for live feeds. Verify them from YOUR network with: ./run.sh check-feeds
+# mode: fixture -> bundled offline demo feeds (fixture:// URLs, dates generated relative to "now")
+# mode: live    -> real feeds (used when FEED_MODE=live)
+# quality: high | low (low-quality sources push the risk level up)
+sources:
+  - {key: fixture-tech-en, name: "Fixture Tech Daily", url: "fixture://fixture-tech-en", language: en, mode: fixture, quality: high}
+  - {key: fixture-news-de, name: "Fixture Nachrichten", url: "fixture://fixture-news-de", language: de, mode: fixture, quality: high}
+  - {key: spiegel-schlagzeilen, name: "DER SPIEGEL Schlagzeilen", url: "https://www.spiegel.de/schlagzeilen/index.rss", language: de, mode: live, quality: high}
+  - {key: spiegel-netzwelt, name: "DER SPIEGEL Netzwelt", url: "https://www.spiegel.de/netzwelt/index.rss", language: de, mode: live, quality: high}
+  - {key: spiegel-wissenschaft, name: "DER SPIEGEL Wissenschaft", url: "https://www.spiegel.de/wissenschaft/index.rss", language: de, mode: live, quality: high}
+  - {key: heise, name: "heise online", url: "https://www.heise.de/rss/heise-atom.xml", language: de, mode: live, quality: high}
+  - {key: bbc-world, name: "BBC News World", url: "https://feeds.bbci.co.uk/news/world/rss.xml", language: en, mode: live, quality: high}
+  - {key: ars-technica, name: "Ars Technica", url: "https://feeds.arstechnica.com/arstechnica/index", language: en, mode: live, quality: high}

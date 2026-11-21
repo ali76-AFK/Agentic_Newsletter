@@ -1,0 +1,130 @@
+name: agentic_nl
+
+x-app: &app
+  image: agentic_nl_app:local
+  build: .
+  env_file: .env
+  environment: &app-env
+    DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    MAILPIT_SMTP_HOST: mailpit
+    MAILPIT_SMTP_PORT: "1025"
+    MAILPIT_API_URL: http://mailpit:8025
+    SOURCES_FILE: /app/sources.yaml
+  networks: [net]
+
+services:
+  db:
+    image: postgres:16
+    container_name: agentic_nl_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports: ["${HOST_PORT_DB:-55433}:5432"]
+    volumes: [agentic_nl_pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [net]
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: agentic_nl_mailpit
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT_MAILPIT_SMTP:-1026}:1025"
+      - "${HOST_PORT_MAILPIT_UI:-8026}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    networks: [net]
+
+  migrate:
+    <<: *app
+    container_name: agentic_nl_migrate
+    command: ["sh", "-c", "alembic upgrade head && python -m app.cli seed"]
+    restart: "no"
+    depends_on:
+      db: {condition: service_healthy}
+
+  api:
+    <<: *app
+    container_name: agentic_nl_api
+    command: ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    restart: unless-stopped
+    ports: ["${HOST_PORT_API:-8100}:8000"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      mailpit: {condition: service_started}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  worker:
+    <<: *app
+    container_name: agentic_nl_worker
+    command: ["python", "-m", "app.worker"]
+    restart: unless-stopped
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      mailpit: {condition: service_started}
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.worker", "--healthcheck"]
+      interval: 15s
+      timeout: 8s
+      retries: 6
+      start_period: 40s
+
+  ui:
+    image: agentic_nl_ui:local
+    build: ./ui
+    container_name: agentic_nl_ui
+    restart: unless-stopped
+    environment:
+      UI_API_URL: http://api:8000
+      UI_MAILPIT_URL: http://localhost:${HOST_PORT_MAILPIT_UI:-8026}
+      UI_API_DOCS_URL: http://localhost:${HOST_PORT_API:-8100}/docs
+    # bound to this computer only: the interface has no login
+    ports: ["127.0.0.1:${HOST_PORT_UI:-8502}:8501"]
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    networks: [net]
+
+  # One-off helper used by ./run.sh test-ui (never started by `up`)
+  ui-tests:
+    image: agentic_nl_ui:local
+    build: ./ui
+    profiles: ["tools"]
+    command: ["python", "-m", "pytest", "-q", "tests"]
+    networks: [net]
+
+  # One-off helper used by ./run.sh test / smoke / check-* (never started by `up`)
+  tools:
+    <<: *app
+    profiles: ["tools"]
+    environment:
+      <<: *app-env
+      TEST_DATABASE_ADMIN_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/postgres
+    depends_on:
+      db: {condition: service_healthy}
+
+networks:
+  net:
+    name: agentic_nl_net
+
+volumes:
+  agentic_nl_pgdata:
+    name: agentic_nl_pgdata

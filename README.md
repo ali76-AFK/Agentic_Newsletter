@@ -5,12 +5,6 @@ Collects articles from allowlisted RSS feeds, lets subscribers pick topics, runs
 **scheduler worker** delivers **one personalised email per subscriber**. Everything runs in Docker. Demo mode is fully
 offline (fixture feeds + mock LLM + Mailpit) and needs no accounts.
 
-> **Read this first: what this build contains.** This ZIP implements **Phase 1 completely, part of Phase 2 and the web interface**
-> (Verifier, risk matrix, review queue, SMTP with allowlist, `check-smtp`, `send-test`, `check-feeds`, live feed mode,
-> **Streamlit web UI** in its own container).
-> It does **not** contain Groq/Ollama providers, model validation against a provider, free-text
-> preferences → plan, IMAP ingestion or the `ollama` compose profile. See *Known limitations*.
-> **Docker itself could not be run where this was built** — see *Verification*.
 
 ## Quick start (from the project root, one command per block)
 

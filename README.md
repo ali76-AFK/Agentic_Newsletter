@@ -239,20 +239,6 @@ Containers/volumes/network are prefixed `agentic_nl_`. Default host ports: Postg
 | UI page does not open | Use the exact address printed by `./run.sh up` (`HOST_PORT_UI` in `.env`); it only listens on this computer. |
 
 
-**Web interface :**
-
-| Claim | How verified | Status |
-|---|---|---|
-| Every UI page renders against the **real FastAPI app** (SQLite, real worker-free stack, SMTP stand-in) with no exception | Streamlit 1.62 headless `AppTest` driving all 7 pages | **Verified** |
-| Forms and buttons change real state: add subscriber (incl. validation + duplicate error), create schedule, Run now, approve / reject (reason required), fetch articles | `AppTest` clicks, then the API state was read back | **Verified** |
-| 16 UI tests (stub API: empty data, API down, stale worker, real-mail tick-box, helpers, full navigation shell) | `pytest` in a clean venv built from `ui/requirements.txt` | **Verified** (`./run.sh test-ui` runs them in Docker) |
-| UI only calls API routes that exist, never imports a DB driver, is published on 127.0.0.1 only and gets no `.env` | `tests/test_ui_contract.py`; 4 deliberate breakages were each caught | **Verified** |
-| A real Streamlit server starts and answers `/_stcore/health` | `streamlit run app.py` headless | **Verified** |
-| Clicking between pages in a browser, visual layout of charts | – | **NOT verified** — no browser available. `AppTest.switch_page` does not support `st.navigation`, so page switching was only checked by rendering each page on its own and the full shell once. |
-| Docker build of the `ui` image, its healthcheck, `depends_on: api` | – | **NOT verified** — no Docker |
-| UI against the PostgreSQL-backed stack | – | **NOT verified** — the API layer is unchanged, but only SQLite was behind it |
-
-If `./run.sh test` or `./run.sh smoke` fails on your machine, paste the output: the most likely culprits are the unverified rows above.
 
 ## Layout
 

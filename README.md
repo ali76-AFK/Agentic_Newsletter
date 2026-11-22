@@ -238,24 +238,6 @@ Containers/volumes/network are prefixed `agentic_nl_`. Default host ports: Postg
 | UI: `The worker has not reported recently` | Scheduled newsletters will not go out: `./run.sh logs worker`. |
 | UI page does not open | Use the exact address printed by `./run.sh up` (`HOST_PORT_UI` in `.env`); it only listens on this computer. |
 
-## Verification (what was actually run where this was built)
-
-Build sandbox: Ubuntu 24.04, Python 3.12.3, **no network, no Docker, no PostgreSQL, no Mailpit, no pytest/FastAPI/Alembic/psycopg**.
-Tests are `unittest` classes (pytest runs them unchanged) so they could run there.
-
-| Claim | How verified | Status |
-|---|---|---|
-| 175 tests across 9 files pass (169 from the earlier build + 6 web-UI contract tests) | `python3 -m unittest discover -s tests` on SQLite + real local SMTP servers (STARTTLS, implicit TLS, AUTH, hang-ups) | **Verified** |
-| Whole smoke scenario (due schedule → real worker process → per-recipient mail → no duplicates → stage-specific failure) | `tests/test_native_smoke.py` runs `app.smoke` against a real `python -m app.worker` subprocess, a real SMTP server and a fake Mailpit HTTP API; worker also checked for graceful SIGTERM | **Verified** (stand-ins, see below) |
-| 20 of 20 deliberately broken fixes are caught by the tests | mutation script: shared `To:`, no savepoint, no catch-up, status always `sent`, no claim-before-send, unpersisted failures, no schedule isolation, allowlist bypass, TLS downgrade/verification off, login retry, hidden stage, doc/endpoint drift, … (two mutants first survived; tests were added) | **Verified** |
-| `init-env`, `doctor`, `.env` mode 600, secrets never printed, unknown/duplicate command handling | executed in a scratch copy | **Verified** (without Docker present) |
-| `run.sh` syntax | `bash -n` | **Verified** |
-| PostgreSQL behaviour (placeholder translation, `ON CONFLICT`, savepoints, `psycopg` rows) | tests are written to run on Postgres via `TEST_DATABASE_ADMIN_URL`, SQL is ANSI-conservative | **NOT verified** — no Postgres here. `./run.sh test` is the first real check. |
-| Alembic migration | `0001_initial.py` executes `migrations/sql/0001_initial.sql` (same file the tests apply to SQLite) | **NOT verified** — Alembic not installable here |
-| FastAPI app | `py_compile` + AST check that README endpoints == decorated routes | **NOT run**; OpenAPI check runs inside Docker only |
-| Docker build, compose, healthchecks, `depends_on` conditions, pinned versions exist | – | **NOT verified** — no Docker, no network |
-| Real Mailpit API shapes (`/api/v1/messages`, `/message/{id}/raw`, `DELETE /api/v1/messages`) | fake written from knowledge of the API | **NOT verified** against a real Mailpit |
-| Live RSS feeds, Groq, real SMTP provider | – | **NOT verified** (no network); use `check-feeds`, `check-smtp`, `send-test` |
 
 **Web interface :**
 
